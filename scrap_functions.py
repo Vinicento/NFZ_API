@@ -20,7 +20,6 @@ class operating_func:
             return html
         except urllib.error.HTTPError as e:
             if e.code == 429:
-                # Retry after waiting for 1 second
                 time.sleep(1)
                 return operating_func.make_request(url)
 
@@ -36,29 +35,28 @@ class basic_searches:
             wyniki[y] = {}
 
         for year in years:
-            for branch in branches:  # wchodzi w województwo
+            for branch in branches:  
                 link = f"https://api.nfz.gov.pl/app-umw-api/agreements?year={year}&branch={branch}&serviceType={usluga}&productCode={produkt}&page=1&limit=10&format=json&api-version=1.2"
-                # link=f"https://api.nfz.gov.pl/app-umw-api/providers/{year}?productCode={produkt}&serviceType={usluga}&page=1&limit=25&format=json&api-version=1.2"
                 response = requests.get(link)
                 data = response.json()
                 current = data["links"]['self']
                 while (current != 'null') & (current != 'None') & (current != None) & (
-                        "next" in data["links"]):  # wchodzi w szpitale
+                        "next" in data["links"]):  
                     response = requests.get(current)
                     data = response.json()
                     current = data["links"]['next']
                     for i in range(len(data["data"]["agreements"])):
                         contract_link = data["data"]["agreements"][i]['links'][
-                            "related"]  
+                            "related"]
                         cost = 0
                         while (contract_link != 'null') & (contract_link != 'None') & (
-                                contract_link != None):  # wchodzi w kontrakty
+                                contract_link != None):  
                             contracts_response = requests.get(contract_link)
                             provider_contracts = contracts_response.json()
                             contract_link = provider_contracts["links"]['next']
                             for j in range(len(provider_contracts['data']['plans'])):
                                 product = provider_contracts['data']['plans'][j]['attributes'][
-                                    'product-code']  
+                                    'product-code']
                                 if product == produkt:
                                     cost += provider_contracts['data']['plans'][j]['attributes']['price']
                             provider_name = provider_contracts['data']['agreement']['attributes']['provider-name']
@@ -78,7 +76,6 @@ class basic_searches:
 
         writer.save()
 
-    ###############################################################
     @staticmethod
     def produkt_dla_szpitali(year_from, year_to, branches, path):
 
@@ -132,7 +129,7 @@ class basic_searches:
         writer.save()
 
     @staticmethod
-    def pacjenci_na_jgp(branches, list_of_codes, path):  # TODO rozdzielic zeby bylo wiadomo jaki kod ile
+    def pacjenci_na_jgp(branches, list_of_codes, path):  
 
         full_data = {}
         for code in list_of_codes:
@@ -160,7 +157,6 @@ class basic_searches:
                         full_data[year][branch] = 0
                     full_data[year][branch] += num_of_patients
 
-                    # Create an Excel writer object
         writer = pd.ExcelWriter(path, engine='xlsxwriter')
         wojewodztwa = ['Dolnośląskie', 'Kujawsko-Pomorskie', 'Lubelskie', 'Lubuskie', 'Łódzkie', 'Małopolskie',
                        'Mazowieckie', 'Opolskie', 'Podkarpackie', 'Podlaskie', 'Pomorskie', 'Śląskie', 'Świętokrzyskie',
@@ -169,7 +165,6 @@ class basic_searches:
         for year in list(full_data.keys()):
             frame[year] = full_data[year].values()
         frame.to_excel(writer, sheet_name="hospitalizacje")
-        # Save the Excel file
         writer.save()
 
     @staticmethod
@@ -183,7 +178,7 @@ class basic_searches:
 
         for year in years:
             for search_product in tqdm(products):
-                for branch in branches:  
+                for branch in branches:
                     link = f"https://api.nfz.gov.pl/app-umw-api/agreements?year={year}&branch={branch}&productCode={search_product}&page=1&limit=25&format=json&api-version=1.2"
                     response = requests.get(link)
                     data = response.json()
@@ -196,7 +191,7 @@ class basic_searches:
 
                             for j in range(len(data["data"]["agreements"])):
                                 contract_link = data["data"]["agreements"][j]['links'][
-                                    "related"]  
+                                    "related"]
                                 response = requests.get(contract_link)
                                 data_2 = response.json()
                                 try:
@@ -208,7 +203,7 @@ class basic_searches:
                                         provider_contracts = contracts_response.json()
                                         for j in range(len(provider_contracts['data']['plans'])):
                                             product = provider_contracts['data']['plans'][j]['attributes'][
-                                                'product-code']  
+                                                'product-code']
                                             if product == search_product:
                                                 cost = provider_contracts['data']['plans'][j]['attributes']['price']
                                                 provider_name = provider_contracts['data']['agreement']['attributes'][
@@ -257,14 +252,11 @@ class basic_searches:
                 pass
         writer.save()
 
-    #######################################################################################
 
     @staticmethod
     def full_scrap(args):
         codes, icd_code = args
         link = "https://api.nfz.gov.pl/app-stat-api-jgp/benefits?catalog=1a&page=1&limit=25&format=json&api-version=1.1"
-        # 2015:{},2016:{},2017:{},
-        # Create an adapter with the retry strategy and connection pool
         final_data = {}
         year = 0
         full_list = {2016: {}, 2017: {}, 2018: {}, 2019: {}, 2020: {}}
@@ -275,7 +267,6 @@ class basic_searches:
 
             try:
                 html = operating_func.make_request(link)
-                # wait for 1 second before making the next request
 
                 table_list = json.loads(html)
 
@@ -331,7 +322,7 @@ class basic_searches:
 
         scrap = requests.session()
         current = "https://api.nfz.gov.pl/app-stat-api-jgp/benefits?catalog=1a&page=1&limit=25&format=json&api-version=1.1"
-        while (current != 'null') & (current != 'None') & (current != None):  # wchodzi w szpitale
+        while (current != 'null') & (current != 'None') & (current != None):  
             response = scrap.get(current)
             data = response.json()
 
@@ -385,7 +376,7 @@ class basic_searches:
 
         workbook.save('example.xlsx')
 
-    
+
     @staticmethod
     def contract_by_service(*args):
         services = args[0][0]
@@ -468,16 +459,12 @@ class basic_searches:
     @staticmethod
     def kwota_kontraktów(services, year_from, year_to, branches, path):
 
-        # create the input list
-        # create a multiprocessing pool with 4 processes
         years = [year for year in range(year_from, year_to + 1)]
         with Pool(8) as p:
-            # split the input list into 4 equal parts and process each part in parallel
-            # results = p.map(scraper.full_scrap, [codes[i::8] for i in range(8)])
             results = p.map(basic_searches.contract_by_service,
                             [(service, years, branches) for service in [services[i::8] for i in range(8)]])
 
-        combined_df = pd.DataFrame()  # Initialize an empty DataFrame
+        combined_df = pd.DataFrame()  
 
         for sublist in results:
             df = pd.DataFrame(sublist, columns=["Rok", "Rodzaj świadczenia", "Województwo", "Nazwa świadczeniodawcy",
