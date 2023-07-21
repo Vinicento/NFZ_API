@@ -49,8 +49,7 @@ class basic_searches:
                     current = data["links"]['next']
                     for i in range(len(data["data"]["agreements"])):
                         contract_link = data["data"]["agreements"][i]['links'][
-                            "related"]  # właściwy ale dalej po stronach skakać
-                        # wojewodztwo=data["data"]["providers"][i]['attributes']["branch"]
+                            "related"]  
                         cost = 0
                         while (contract_link != 'null') & (contract_link != 'None') & (
                                 contract_link != None):  # wchodzi w kontrakty
@@ -59,7 +58,7 @@ class basic_searches:
                             contract_link = provider_contracts["links"]['next']
                             for j in range(len(provider_contracts['data']['plans'])):
                                 product = provider_contracts['data']['plans'][j]['attributes'][
-                                    'product-code']  # do porawy trzeba przefiltrować
+                                    'product-code']  
                                 if product == produkt:
                                     cost += provider_contracts['data']['plans'][j]['attributes']['price']
                             provider_name = provider_contracts['data']['agreement']['attributes']['provider-name']
@@ -70,25 +69,19 @@ class basic_searches:
                         else:
                             wyniki[year][str(branch)] = pd.DataFrame({"nazwa": [provider_name], "kwota": [cost]})
 
-        # Create an Excel writer object
         writer = pd.ExcelWriter(path, engine='xlsxwriter')
 
-        # Iterate over the years and write each year's data to a separate sheet
         for year in years:
             sheetname = str(year)
-            # Concatenate the dataframes for all branches in the current year
             df = pd.concat(wyniki[year].values(), keys=wyniki[year].keys())
-            # Write the concatenated dataframe to the current sheet
             df.to_excel(writer, sheet_name=sheetname)
 
-        # Save the Excel file
         writer.save()
 
     ###############################################################
     @staticmethod
     def produkt_dla_szpitali(year_from, year_to, branches, path):
 
-        # zwraca liste wszystkich kontraktów dla wszystkich szpitali z kwotami pod tabele przestawną
         years = [year for year in range(year_from, year_to + 1)]
         results = []
         for year in tqdm(years):
@@ -105,23 +98,20 @@ class basic_searches:
                         main_page_request = scrap_functions.operating_func.make_request(first_main)
                         main_page = json.loads(main_page_request)
                     except:
-                        print(first_main)
-
+                        pass
                     for i in main_page["data"]["agreements"]:
                         hospital_summary = i['attributes']['amount']
                         try:
                             minor_page_link = i['links']['related']
                         except:
-                            print("eroror")
-                            print(i)
+                            pass
                         hospital_name = i['attributes']["provider-name"]
 
                         try:
                             minor_page_request = scrap_functions.operating_func.make_request(minor_page_link)
                             minor_page = json.loads(minor_page_request)
                         except:
-                            print(minor_page_link)
-
+                            pass
                         for i in minor_page['data']['plans']:
                             produkt = i['attributes']['product-name']
                             avg_price = i['attributes']['avg-price']
@@ -193,9 +183,8 @@ class basic_searches:
 
         for year in years:
             for search_product in tqdm(products):
-                for branch in branches:  # wchodzi w województwo
+                for branch in branches:  
                     link = f"https://api.nfz.gov.pl/app-umw-api/agreements?year={year}&branch={branch}&productCode={search_product}&page=1&limit=25&format=json&api-version=1.2"
-                    # link=f"https://api.nfz.gov.pl/app-umw-api/providers/{year}?productCode={produkt}&serviceType={usluga}&page=1&limit=25&format=json&api-version=1.2"
                     response = requests.get(link)
                     data = response.json()
                     try:
@@ -207,7 +196,7 @@ class basic_searches:
 
                             for j in range(len(data["data"]["agreements"])):
                                 contract_link = data["data"]["agreements"][j]['links'][
-                                    "related"]  # właściwy ale dalej po stronach skakać
+                                    "related"]  
                                 response = requests.get(contract_link)
                                 data_2 = response.json()
                                 try:
@@ -215,12 +204,11 @@ class basic_searches:
 
                                     for i in range(1, pages_2 + 1):
                                         contract_link_2 = contract_link + "&page=" + str(i) + "&limit=25"
-                                        print(i, pages_2)
                                         contracts_response = requests.get(contract_link_2)
                                         provider_contracts = contracts_response.json()
                                         for j in range(len(provider_contracts['data']['plans'])):
                                             product = provider_contracts['data']['plans'][j]['attributes'][
-                                                'product-code']  # do porawy trzeba przefiltrować
+                                                'product-code']  
                                             if product == search_product:
                                                 cost = provider_contracts['data']['plans'][j]['attributes']['price']
                                                 provider_name = provider_contracts['data']['agreement']['attributes'][
@@ -257,11 +245,9 @@ class basic_searches:
             '16': 'zachodniopomorskie'
         }
 
-        # Create an Excel writer object
 
         writer = pd.ExcelWriter(path)
         for year in years:
-            print(wyniki[year])
             try:
                 wyniki[year]['wojew'] = wyniki[year]['wojew'].map(wojewodztwa)
 
@@ -304,9 +290,8 @@ class basic_searches:
 
                 if data_link:
                     general_data = [table for table in data_link if (table['type'] == 'icd-9-procedures') & (
-                                table['attributes']['header'] == "Procedury ICD 9")][0]["id"]
+                            table['attributes']['header'] == "Procedury ICD 9")][0]["id"]
                     full_list[year][code] = general_data
-            ################################# tutaj mamy liste lat i kodów teraz trzeba zamienic do kazdego kodu
 
         for year in full_list.keys():
             for code in tqdm(full_list[year].keys()):
@@ -351,7 +336,7 @@ class basic_searches:
             data = response.json()
 
             current = data["links"]['next']
-            # try bo ostatni nonetype bedzie error do oprawy
+
             try:
                 current = current[:4] + "s" + current[4:]
             except TypeError:
@@ -363,15 +348,12 @@ class basic_searches:
 
         names = dict(zip(codes, names))
 
-        # create the input list
-        # create a multiprocessing pool with 4 processes
+
         with Pool(8) as p:
-            # split the input list into 4 equal parts and process each part in parallel
-            # results = p.map(basic_searches.full_scrap, [codes[i::8] for i in range(8)])
+
             results = p.map(basic_searches.full_scrap,
                             [(code_part, icd_code,) for code_part in [codes[i::8] for i in range(8)]])
 
-            # results = p.map(scraper.full_scrap, [codes[i::8] for i in range(8)])
 
         merged_dict = {}
         for d in [results[0], results[1], results[2], results[3], results[4], results[5], results[6], results[7]]:
@@ -380,7 +362,6 @@ class basic_searches:
                     merged_dict[year] = {}
                 merged_dict[year].update(d[year])
 
-        keys_to_delete = []
         new_results = {}
 
         for key, value in merged_dict.items():
@@ -389,11 +370,9 @@ class basic_searches:
             filtered_dict = {k: v for k, v in merged_dict[key].items() if v in list_0f_vs}
             new_results[key] = filtered_dict
 
-        # excell save
 
         workbook = openpyxl.Workbook()
 
-        # Loop through the years and create a sheet for each one
         for year in new_results.keys():
             sheet = workbook.create_sheet(str(year))
             sheet['A1'] = 'Code'
@@ -404,14 +383,12 @@ class basic_searches:
                 sheet.cell(row=i + 2, column=2, value=new_results[year][code])
                 sheet.cell(row=i + 2, column=3, value=names[code])
 
-        # Save the workbook
         workbook.save('example.xlsx')
 
-    ########################################################
+    
     @staticmethod
     def contract_by_service(*args):
         services = args[0][0]
-        print(services)
         years = args[0][1]
         branches = args[0][2]
         results = []
@@ -437,8 +414,6 @@ class basic_searches:
                                     main_page_request = operating_func.make_request(first_main)
                                     main_page = json.loads(main_page_request)
                                 except:
-                                    print("ERROROERRORERRROR")
-                                    print(first_main)
                                     pass
 
                             for j in main_page["data"]["agreements"]:
@@ -446,7 +421,6 @@ class basic_searches:
                                 try:
                                     minor_page_link = j['id']
                                 except:
-                                    print("blad")
                                     pass
                                 hospital_name = j['attributes']["provider-name"]
 
@@ -461,8 +435,6 @@ class basic_searches:
                                             f"https://api.nfz.gov.pl/app-umw-api/agreements/{minor_page_link}?format=json&page=1&limit=25&api-version=1.2")
                                         minor_page = json.loads(minor_page_request)
                                     except:
-                                        print("mistake")
-                                        print(minor_page_link)
                                         pass
 
                                 pages_minor = math.ceil(minor_page['meta']["count"] / 25)
@@ -479,8 +451,6 @@ class basic_searches:
                                                 f"https://api.nfz.gov.pl/app-umw-api/agreements/{minor_page_link}?format=json&page={w}&limit=25&api-version=1.2")
                                             minor_page = json.loads(minor_page_request)
                                         except:
-                                            print("mistake_2")
-                                            print(minor_page_link)
                                             pass
                                     for k in minor_page['data']['plans']:
                                         produkt = k['attributes']['product-name']
@@ -522,4 +492,3 @@ class basic_searches:
             data_to_save.to_excel(writer, sheet_name=f"year{year}", index=False)
 
         writer.save()
-
